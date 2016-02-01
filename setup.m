@@ -18,7 +18,7 @@ if doCompile && gpuDeviceCount()==0 ...
     return;
 end
 
-% addpath(genpath('dataset'));
+addpath(genpath('dataset'));
 % addpath(genpath('utils'));
 
 % -------------------------------------------------------------------------
