@@ -12,6 +12,10 @@ if ~isfield(opts.train, 'gpus'), opts.train.gpus = []; end;
 
 imdb = get_imdb('bing7'); 
 net = cnn_finetune_init(imdb); 
+net.meta.trainOpts.learningRate = [0.05*ones(1,10) 0.01*ones(1,10) 0.001*ones(1,10) 0.0001*ones(1,10)]; 
+net.meta.trainOpts.numEpochs = numel(net.meta.trainOpts.learningRate); 
+net.meta.trainOpts.batchSize = 64;
+net.meta.trainOpts.sessions{2}.startEpoch = 11;
 
 % -------------------------------------------------------------------------
 %                                                                     Learn
@@ -45,7 +49,7 @@ for i = 1:numel(lr),
     net.layers{l}.learningRate = lr{i}*0; 
   end
 end
-trainOpts.numEpochs = net.meta.trainOpts.numEpochs - net.meta.trainOpts.sessions{2}.startEpoch + 1;
+trainOpts.numEpochs = net.meta.trainOpts.numEpochs;
 [net, info] = cnn_train(net, imdb, getBatchFn(opts, net.meta), ...
                       'expDir', opts.expDir, ...
                       trainOpts, ...
