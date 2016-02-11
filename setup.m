@@ -19,7 +19,7 @@ if doCompile && gpuDeviceCount()==0 ...
 end
 
 addpath(genpath('dataset'));
-% addpath(genpath('utils'));
+addpath(genpath('utils'));
 
 % -------------------------------------------------------------------------
 %                                                                   vlfeat
