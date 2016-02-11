@@ -1,4 +1,4 @@
-function dirfun( dir_path, processFn, save_path, imreadFn, file_pattern, save_pattern )
+function dirfun( dir_path, processFn, save_path, imreadFn, file_pattern, save_pattern, cnt_limit )
 % dirfun Apply a function to each file in the directory
 % 
 % dir_path:     directory containing images, will be searched recursively 
@@ -7,6 +7,7 @@ function dirfun( dir_path, processFn, save_path, imreadFn, file_pattern, save_pa
 % imreadFn:     (default:: @imread_safe) function used to load images
 % file_pattern: (default:: '*') images that will be processed
 % save_pattern: (default:: '') e.g. '%02d.png' will save images as 01.png, 02.png, ...
+% cnt_limit:    (default:: inf) the maximum number of images used in each folder itself
 % 
 % Hang Su
 
@@ -30,16 +31,21 @@ if ~exist('save_pattern','var') || isempty(save_pattern),
   save_pattern = '';
 end
 
+% default cnt_limit
+if ~exist('cnt_limit','var') || isempty(cnt_limit), 
+  cnt_limit = inf;
+end
+
 if ischar(file_pattern), 
   file_pattern = {file_pattern};
 end
 
 % run recursively
-update_dir(dir_path, save_path, processFn, imreadFn, file_pattern, save_pattern); 
+update_dir(dir_path, save_path, processFn, imreadFn, file_pattern, save_pattern, cnt_limit); 
 
 end
 
-function update_dir(cur_dir, cur_save_dir, processFn, imreadFn, file_pattern, save_pattern)
+function update_dir(cur_dir, cur_save_dir, processFn, imreadFn, file_pattern, save_pattern, cnt_limit)
 
 file_names = {};
 for i = 1:numel(file_pattern), 
@@ -74,11 +80,13 @@ for i=1:numel(file_names),
     imwrite(im,fullfile(cur_save_dir, sprintf(save_pattern, im_cnt))); 
   end
   
+  if im_cnt >= cnt_limit, break; end
+  
 end
 
 for d = 1:numel(dir_names), 
   update_dir(fullfile(cur_dir,dir_names{d}), ...
-    fullfile(cur_save_dir,dir_names{d}), processFn, imreadFn, file_pattern, save_pattern);
+    fullfile(cur_save_dir,dir_names{d}), processFn, imreadFn, file_pattern, save_pattern, cnt_limit);
 end
 
 end

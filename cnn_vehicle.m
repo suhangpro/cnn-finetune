@@ -1,6 +1,10 @@
 function [net, info] = cnn_vehicle(varargin)
 
-opts.expDir = fullfile('data','exp') ;
+opts.expDir     = fullfile('data','exp') ;
+opts.dataset    = 'bing7';
+opts.baseNet    = 'imagenet-matconvnet-vgg-m';
+opts.lr         = [0.05*ones(1,10) 0.01*ones(1,10) 0.001*ones(1,10) 0.0001*ones(1,10)]; 
+opts.batchSize  = 64;
 opts.numFetchThreads = 12 ;
 opts.train = struct() ;
 opts = vl_argparse(opts, varargin) ;
@@ -10,11 +14,11 @@ if ~isfield(opts.train, 'gpus'), opts.train.gpus = []; end;
 %                                                             Prepare model
 % -------------------------------------------------------------------------
 
-imdb = get_imdb('bing7'); 
-net = cnn_finetune_init(imdb); 
-net.meta.trainOpts.learningRate = [0.05*ones(1,10) 0.01*ones(1,10) 0.001*ones(1,10) 0.0001*ones(1,10)]; 
+imdb = get_imdb(opts.dataset); 
+net = cnn_finetune_init(imdb,opts.baseNet); 
+net.meta.trainOpts.learningRate = opts.lr;
 net.meta.trainOpts.numEpochs = numel(net.meta.trainOpts.learningRate); 
-net.meta.trainOpts.batchSize = 64;
+net.meta.trainOpts.batchSize = opts.batchSize;
 net.meta.trainOpts.sessions{2}.startEpoch = 11;
 
 % -------------------------------------------------------------------------
