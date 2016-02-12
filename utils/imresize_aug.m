@@ -6,12 +6,12 @@ function im = imresize_aug( im, opts )
 %   .size       (default:: [256 256]) resizing target (NROWS,NCOLS)
 %   .mode       ['crop']|'stretch'|'pad' 
 %   .color      ['rgb']|'gray'
-%   .pad_white  (default:: false) pad white instead of black
+%   .pad_color  (default:: [0.4810 0.4505 0.3986]) padding color
 
 defaultOpts.size = [256 256]; % [height width]
 defaultOpts.mode = 'crop'; 
 defaultOpts.color = 'rgb'; 
-defaultOpts.pad_white = false; 
+defaultOpts.pad_color = [0.4810 0.4505 0.3986]; 
 
 % return default options when called w/o any arguments
 if nargin==0,
@@ -28,6 +28,21 @@ else
         opts.(missingFields{i}) = defaultOpts.(missingFields{i});
     end
 end
+
+if ischar(opts.pad_color), 
+    switch opts.pad_color, 
+        case 'white', 
+            pad_color = reshape([1.0 1.0 1.0],[1 1 3]);
+        case 'black', 
+            pad_color = reshape([0.0 0.0 0.0],[1 1 3]);
+        otherwise, 
+            error('Unknown padding color: %s', opts.pad_color);
+    end
+else
+    assert(numel(opts.pad_color)==3);
+    pad_color = reshape(opts.pad_color,[1 1 3]);
+end
+
 
 if strcmpi(opts.color,'rgb'),   nch = 3;
 elseif strcmpi(opts.color,'gray'), nch = 1;
@@ -55,13 +70,12 @@ if strcmpi(opts.mode,'crop'),         % mode 1: crop
 elseif strcmpi(opts.mode,'stretch'),  % mode 2: stretch
     im = imresize(im, opts.size);
 elseif strcmpi(opts.mode,'pad'),      % mode 3: pad
-    if opts.pad_white,
-        im_tmp = ones(opts.size(1),opts.size(2),nch,'like',im);
-        if isinteger(im), 
-            im_tmp = im_tmp*255;
-        end
+    im_tmp = ones(opts.size(1),opts.size(2),nch,'like',im);
+    if isinteger(im), 
+        assert(isa(im,'uint8'));
+        im_tmp = bsxfun(@times, im_tmp, uint8(255*pad_color));
     else
-        im_tmp = zeros(opts.size(1),opts.size(2),nch,'like',im);
+        im_tmp = bsxfun(@times, im_tmp, pad_color);
     end
     if sz(2)/sz(1) > ar,
         im = imresize(im,[nan opts.size(2)]);
