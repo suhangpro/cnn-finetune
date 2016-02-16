@@ -63,7 +63,7 @@ trainOpts.numEpochs = net.meta.trainOpts.numEpochs;
 %                                                                    Deploy
 % -------------------------------------------------------------------------
 
-net = cnn_deploy(net) ;
+net = cnn_imagenet_deploy(net) ;
 modelPath = fullfile(opts.expDir, 'net-deployed.mat')
 save(modelPath, '-struct', 'net') ;
 
@@ -87,11 +87,11 @@ isVal = ~isempty(batch) && imdb.images.set(batch(1)) ~= 1 ;
 
 if ~isVal
   % training
-  im = cnn_get_batch(images, opts, ...
+  im = cnn_imagenet_get_batch(images, opts, ...
                               'prefetch', nargout == 0) ;
 else
   % validation: disable data augmentation
-  im = cnn_get_batch(images, opts, ...
+  im = cnn_imagenet_get_batch(images, opts, ...
                               'prefetch', nargout == 0, ...
                               'transformation', 'none') ;
 end
