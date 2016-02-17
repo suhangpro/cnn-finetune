@@ -5,6 +5,8 @@ opts.baseNet    = 'imagenet-matconvnet-vgg-m';
 opts.numEpochs  = [10 20]; 
 opts.numFetchThreads = 12 ;
 opts.imdb       = [];
+opts.aug 	= 'stretch'; 
+opts.pad 	= 0; 
 [opts,varargin] = vl_argparse(opts, varargin) ;
 
 opts.train = struct() ;
@@ -79,11 +81,13 @@ save(modelPath, '-struct', 'net') ;
 function fn = getBatchFn(opts, meta)
 % -------------------------------------------------------------------------
 bopts.numThreads = opts.numFetchThreads ;
+bopts.pad = opts.pad ;
 bopts.imageSize = meta.normalization.imageSize ;
 bopts.border = meta.normalization.border ;
 bopts.averageImage = meta.normalization.averageImage ;
 bopts.rgbVariance = meta.augmentation.rgbVariance ;
-bopts.transformation = meta.augmentation.transformation ;
+% bopts.transformation = meta.augmentation.transformation ;
+bopts.transformation = opts.aug ;
 
 fn = @(x,y) getSimpleNNBatch(bopts,x,y) ;
 
