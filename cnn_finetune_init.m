@@ -2,7 +2,6 @@ function net = cnn_finetune_init(imdb, net)
 
 opts.weightInitMethod = 'xavierimproved' ;
 opts.scale = 1; 
-opts.sessionStartIdx = [1 6];
 
 if ~exist('net', 'var') || isempty(net), 
   net = 'imagenet-matconvnet-vgg-m';
@@ -22,17 +21,11 @@ end
 
 net.layers{end} = struct('name','loss','type','softmaxloss'); 
 
-trainable_layers = find(cellfun(@(l) isfield(l,'weights'),net.layers));
-
 if ~isfield(net.meta, 'pretrain'), 
   net.meta.pretrain = {};
 end
 net.meta.pretrain = [net.meta.pretrain net.meta];
 net.meta.pretrain{end} = rmfield(net.meta.pretrain{end}, 'pretrain'); 
-net.meta.trainOpts.sessions{1} = struct('startEpoch',opts.sessionStartIdx(1), ...
-  'layers',trainable_layers(end));
-net.meta.trainOpts.sessions{2} = struct('startEpoch',opts.sessionStartIdx(2), ...
-  'layers',trainable_layers(1:end-1));
 net.meta.classes.name = imdb.meta.classes;
 net.meta.classes.description = imdb.meta.classes;
 

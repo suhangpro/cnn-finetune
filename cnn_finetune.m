@@ -2,7 +2,7 @@ function [net, info] = cnn_finetune(datasetName, varargin)
 
 opts.expDir     = fullfile('data','exp') ;
 opts.baseNet    = 'imagenet-matconvnet-vgg-m';
-opts.numEpochs  = [10 20]; 
+opts.numEpochs  = [5 5 10]; 
 opts.numFetchThreads = 12 ;
 opts.imdb       = [];
 opts.aug 	= 'stretch'; 
@@ -22,7 +22,7 @@ else
 end
 net = cnn_finetune_init(imdb,opts.baseNet); 
 
-net.meta.trainOpts.learningRate = [0.05*ones(1,10) 0.01*ones(1,10) 0.001*ones(1,10) 0.0001*ones(1,10)]; 
+net.meta.trainOpts.learningRate = [0.05*ones(1,5) 0.01*ones(1,5) 0.001*ones(1,5) 0.0001*ones(1,5)]; 
 net.meta.trainOpts.momentum = 0.9;
 net.meta.trainOpts.batchSize = 64;
 net.meta.trainOpts.gpus = [];
@@ -34,39 +34,26 @@ net.meta.trainOpts.sessions{2}.startEpoch = opts.numEpochs(2) + 1;
 %                                                                     Learn
 % -------------------------------------------------------------------------
 trainable_layers = find(cellfun(@(l) isfield(l,'weights'),net.layers)); 
+fc_layers = find(cellfun(@(s) numel(s.name)>=2 && strcmp(s.name(1:2),'fc'),net.layers));
+fc_layers = intersect(fc_layers, trainable_layers);
 lr = cellfun(@(l) l.learningRate, net.layers(trainable_layers),'UniformOutput',false); 
-trainOpts = rmfield(net.meta.trainOpts,'sessions'); 
+layers_for_update = {trainable_layers(end), fc_layers, trainable_layers}; 
 
-% session 1: finetune the last layer only
-if opts.numEpochs(1)>0, 
-  for i = 1:numel(lr), 
+% tune last layer --> tune fc layers --> tune all layers
+for s = 1:numel(opts.numEpochs), 
+  if opts.numEpochs(s)<1, continue; end
+  for i = 1:numel(trainable_layers), 
     l = trainable_layers(i); 
-    if ismember(l,net.meta.trainOpts.sessions{1}.layers), 
+    if ismember(l,layers_for_update{s}), 
       net.layers{l}.learningRate = lr{i}; 
     else
       net.layers{l}.learningRate = lr{i}*0; 
     end
   end
-  trainOpts.numEpochs = opts.numEpochs(1);
   [net, info] = cnn_train(net, imdb, getBatchFn(opts, net.meta), ...
                           'expDir', opts.expDir, ...
-                          trainOpts) ;
-end
-
-% session 2: finetune all layers jointly
-if opts.numEpochs(2)>0, 
-  for i = 1:numel(lr), 
-    l = trainable_layers(i); 
-    if ismember(l,net.meta.trainOpts.sessions{2}.layers), 
-      net.layers{l}.learningRate = lr{i}; 
-    else
-      net.layers{l}.learningRate = lr{i}*0; 
-    end
-  end
-  trainOpts.numEpochs = opts.numEpochs(1) + opts.numEpochs(2);
-  [net, info] = cnn_train(net, imdb, getBatchFn(opts, net.meta), ...
-                        'expDir', opts.expDir, ...
-                        trainOpts) ;
+                          net.meta.trainOpts, ...
+                          'numEpochs', opts.numEpochs(s)) ;
 end
 
 % -------------------------------------------------------------------------
