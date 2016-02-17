@@ -28,8 +28,6 @@ net.meta.trainOpts.batchSize = 64;
 net.meta.trainOpts.gpus = [];
 net.meta.trainOpts = vl_argparse(net.meta.trainOpts, varargin) ;
 
-net.meta.trainOpts.sessions{2}.startEpoch = opts.numEpochs(2) + 1;
-
 % -------------------------------------------------------------------------
 %                                                                     Learn
 % -------------------------------------------------------------------------
