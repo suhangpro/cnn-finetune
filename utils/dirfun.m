@@ -77,7 +77,16 @@ for i=1:numel(file_names),
   if isempty(save_pattern), 
     imwrite(im,fullfile(cur_save_dir, file_names{i})); 
   else
-    imwrite(im,fullfile(cur_save_dir, sprintf(save_pattern, im_cnt))); 
+    if ~isempty(strfind(save_pattern,'%s')), 
+      [~,cur_name] = fileparts(file_names{i}); 
+      cur_name = strrep(save_pattern,'%s',cur_name);
+    else
+      cur_name = save_pattern;
+    end
+    if ~isempty(strfind(cur_name,'%d')), 
+      cur_name = sprintf(cur_name,im_cnt);
+    end
+    imwrite(im,fullfile(cur_save_dir, cur_name)); 
   end
   
   if im_cnt >= cnt_limit, break; end
