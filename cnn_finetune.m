@@ -5,28 +5,39 @@ opts.baseNet    = 'imagenet-matconvnet-vgg-m';
 opts.numEpochs  = [5 5 10]; 
 opts.numFetchThreads = 12 ;
 opts.imdb       = [];
-opts.aug 	= 'stretch'; 
-opts.pad 	= 0; 
+opts.includeVal = false; 
+opts.aug        = 'stretch'; 
+opts.border     = 0; 
+opts.pad        = 0; 
 [opts,varargin] = vl_argparse(opts, varargin) ;
 
-opts.train = struct() ;
-if ~isfield(opts.train, 'gpus'), opts.train.gpus = []; end;
+opts.train.learningRate = [0.05*ones(1,5) 0.01*ones(1,5) 0.001*ones(1,5) 0.0001*ones(1,5)]; 
+opts.train.momentum = 0.9;
+opts.train.batchSize = 64;
+opts.train.maxIterPerEpoch = [Inf, Inf]; 
+opts.train.balancingFunction = {[], []};
+opts.train.gpus = [];
+opts.train = vl_argparse(opts.train, varargin) ;
+
+if ~exist(opts.expDir, 'dir'), vl_xmkdir(opts.expDir) ; end
 
 % -------------------------------------------------------------------------
-%                                                             Prepare model
+%                                                      Prepare data & model
 % -------------------------------------------------------------------------
 if isempty(opts.imdb), 
   imdb = get_imdb(datasetName); 
 else
   imdb = opts.imdb;
 end
-net = cnn_finetune_init(imdb,opts.baseNet); 
 
-net.meta.trainOpts.learningRate = [0.05*ones(1,5) 0.01*ones(1,5) 0.001*ones(1,5) 0.0001*ones(1,5)]; 
-net.meta.trainOpts.momentum = 0.9;
-net.meta.trainOpts.batchSize = 64;
-net.meta.trainOpts.gpus = [];
-net.meta.trainOpts = vl_argparse(net.meta.trainOpts, varargin) ;
+opts.train.train = find(imdb.images.set==1);
+opts.train.val = find(imdb.images.set==2); 
+if opts.includeVal, 
+  opts.train.train = [opts.train.train opts.train.val];
+  opts.train.val = [];
+end
+
+net = cnn_finetune_init(imdb,opts.baseNet); 
 
 % -------------------------------------------------------------------------
 %                                                                     Learn
@@ -48,9 +59,10 @@ for s = 1:numel(opts.numEpochs),
       net.layers{l}.learningRate = lr{i}*0; 
     end
   end
-  [net, info] = cnn_train(net, imdb, getBatchFn(opts, net.meta), ...
+  [net, info] = cnn_finetune_train(net, imdb, getBatchFn(opts, net.meta), ...
                           'expDir', opts.expDir, ...
                           net.meta.trainOpts, ...
+                          opts.train, ...
                           'numEpochs', sum(opts.numEpochs(1:s))) ;
 end
 
@@ -67,12 +79,12 @@ function fn = getBatchFn(opts, meta)
 % -------------------------------------------------------------------------
 bopts.numThreads = opts.numFetchThreads ;
 bopts.pad = opts.pad ;
+bopts.border = opts.border ;
+bopts.transformation = opts.aug ;
 bopts.imageSize = meta.normalization.imageSize ;
-bopts.border = meta.normalization.border ;
 bopts.averageImage = meta.normalization.averageImage ;
 bopts.rgbVariance = meta.augmentation.rgbVariance ;
 % bopts.transformation = meta.augmentation.transformation ;
-bopts.transformation = opts.aug ;
 
 fn = @(x,y) getSimpleNNBatch(bopts,x,y) ;
 
